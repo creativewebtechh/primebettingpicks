@@ -1,405 +1,475 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma/client"
 }
 
 datasource db {
   provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
-model advertisement {
-  id        String    @id @default(cuid())
-  name      String
-  position  String
-  code      String
-  active    Boolean   @default(true)
-  startDate DateTime?
-  endDate   DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model User {
+  id                    String     @id @default(cuid())
+  email                 String     @unique
+  username              String     @unique
+  password              String?
+  firstName             String?
+  lastName              String?
+  avatar                String?
+  phoneNumber           String?
+  verified              Boolean    @default(false)
+  verificationToken     String?
+  verificationExpires   DateTime?
+  twoFactorEnabled      Boolean    @default(false)
+  twoFactorSecret       String?
+  
+  // Auth
+  role                  UserRole   @default(USER)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  lastLoginAt           DateTime?
+  
+  // Account Status
+  status                AccountStatus @default(ACTIVE)
+  suspendedAt           DateTime?
+  suspendedReason       String?
+  
+  // Subscription
+  subscriptionId        String?
+  subscription          Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscriptionStartDate DateTime?
+  subscriptionEndDate   DateTime?
+  subscriptionStatus    SubscriptionStatus @default(INACTIVE)
+  
+  // Relationships
+  predictions           SavedPrediction[]
+  payments              Payment[]
+  notifications         Notification[]
+  referrals             Referral[]         @relation("referrer")
+  referredBy            Referral?          @relation("referred", fields: [id], references: [referredUserId])
+  activityLog           ActivityLog[]
+  
+  @@index([email])
+  @@index([subscriptionId])
 }
 
-model analyticsevent {
-  id        String   @id @default(cuid())
-  event     String
-  page      String
-  metadata  String?
-  ip        String?
-  createdAt DateTime @default(now())
+model Admin {
+  id                    String     @id @default(cuid())
+  email                 String     @unique
+  password              String
+  firstName             String
+  lastName              String
+  role                  AdminRole  @default(MODERATOR)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  lastLoginAt           DateTime?
+  
+  @@index([email])
 }
 
-model bookmaker {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique(map: "Bookmaker_slug_key")
-  logo      String?
-  website   String?
-  rating    Float    @default(0)
-  bonus     String?
-  features String?
-  active    Boolean  @default(true)
-  featured  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
 }
 
-model contactmessage {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  subject   String
-  message   String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+  ANALYST
 }
 
-model expert {
-  id               String       @id @default(cuid())
-  name             String
-  slug             String       @unique(map: "Expert_slug_key")
-  avatar           String?
-  bio              String?
-  specialties      String?
-  winRate          Float        @default(0)
-  totalPredictions Int          @default(0)
-  verified         Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  prediction       prediction[]
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  DELETED
 }
 
-model league {
-  id          String        @id @default(cuid())
-  name        String
-  slug        String        @unique(map: "League_slug_key")
-  logo        String?
-  country     String
-  tier        Int           @default(0)
-  sport       String        @default("football")
-  season      String
-  featured    Boolean       @default(false)
-  active      Boolean       @default(true)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  match       match[]
-  newsarticle newsarticle[]
-  team        team[]
-  fixture     fixture[]
-  topscorer   topscorer[]
-  standing     standing[]
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+  PAUSED
+  CANCELLED
 }
 
-model match {
-  id                          String      @id @default(cuid())
-  externalId                  String?
-  leagueId                    String
-  homeTeamId                  String
-  awayTeamId                  String
-  status                      String      @default("upcoming")
-  date                        DateTime
-  venue                       String?
-  round                       String?
-  homeScore                   Int?
-  awayScore                   Int?
-  homeHalfScore               Int?
-  awayHalfScore               Int?
-  homeRedCards                Int?
-  awayRedCards                Int?
-  homeYellowCards             Int?
-  awayYellowCards             Int?
-  possessionHome              Int?
-  possessionAway              Int?
-  shotsHome                   Int?
-  shotsAway                   Int?
-  shotsOnTargetHome           Int?
-  shotsOnTargetAway           Int?
-  cornersHome                 Int?
-  cornersAway                 Int?
-  foulsHome                   Int?
-  foulsAway                   Int?
-  injuries                    String?
-  liveMinute                  Int?
-  homeForm                    String?
-  awayForm                    String?
-  createdAt                   DateTime    @default(now())
-  updatedAt                   DateTime    @updatedAt
-  team_match_awayTeamIdToteam team        @relation("match_awayTeamIdToteam", fields: [awayTeamId], references: [id], map: "Match_awayTeamId_fkey")
-  team_match_homeTeamIdToteam team        @relation("match_homeTeamIdToteam", fields: [homeTeamId], references: [id], map: "Match_homeTeamId_fkey")
-  league                      league      @relation(fields: [leagueId], references: [id], map: "Match_leagueId_fkey")
-  prediction                  prediction?
-  livescore                   livescore?
-
-  @@index([awayTeamId], map: "Match_awayTeamId_fkey")
-  @@index([homeTeamId], map: "Match_homeTeamId_fkey")
-  @@index([leagueId], map: "Match_leagueId_fkey")
+model SubscriptionPlan {
+  id                    String     @id @default(cuid())
+  name                  String     @unique
+  description           String?
+  price                 Float
+  currency              String     @default("USD")
+  billingCycle          String     @default("monthly") // monthly, yearly
+  features              String[]
+  predictionLimit       Int        @default(0) // 0 = unlimited
+  premiumAccess         Boolean    @default(false)
+  vipAccess             Boolean    @default(false)
+  correctScoreAccess    Boolean    @default(false)
+  telegramAccess        Boolean    @default(false)
+  earlyReleaseAccess    Boolean    @default(false)
+  dedicatedSupport      Boolean    @default(false)
+  
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  subscriptions         Subscription[]
+  
+  @@index([name])
 }
 
-model newsarticle {
-  id              String   @id @default(cuid())
-  title           String
-  slug            String   @unique(map: "NewsArticle_slug_key")
-  excerpt         String
-  content         String
-  author          String
-  image           String?
-  category        String
-  tags            String?
-  published       Boolean  @default(false)
-  featured        Boolean  @default(false)
-  leagueId        String?
-  metaTitle       String?
-  metaDescription String?
-  ogImage         String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  league          league?  @relation(fields: [leagueId], references: [id], map: "NewsArticle_leagueId_fkey")
-
-  @@index([leagueId], map: "NewsArticle_leagueId_fkey")
+model Subscription {
+  id                    String     @id @default(cuid())
+  userId                String     @unique
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  planId                String
+  plan                  SubscriptionPlan @relation(fields: [planId], references: [id])
+  
+  status                SubscriptionStatus @default(ACTIVE)
+  startDate             DateTime   @default(now())
+  endDate               DateTime
+  renewalDate           DateTime?
+  autoRenew             Boolean    @default(true)
+  
+  stripeSubscriptionId  String?
+  paystackSubscriptionId String?
+  flutterwaveSubId      String?
+  
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  @@index([userId])
+  @@index([planId])
 }
 
-model prediction {
-  id                 String    @id @default(cuid())
-  matchId            String    @unique(map: "Prediction_matchId_key")
-  expertId           String?
-  predictedHomeScore Int
-  predictedAwayScore Int
-  homeWinProbability Float
-  awayWinProbability Float
-  drawProbability    Float
-  tip                String
-  analysis           String?
-  bettingTips        String?
-  result             String    @default("pending")
-  published          Boolean   @default(false)
-  featured           Boolean   @default(false)
-  price              Int?
-  premium            Boolean   @default(false)
-  notes              String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  expert             expert?   @relation(fields: [expertId], references: [id], map: "Prediction_expertId_fkey")
-  match              match     @relation(fields: [matchId], references: [id], map: "Prediction_matchId_fkey")
-  payment            payment[]
-
-  @@index([expertId], map: "Prediction_expertId_fkey")
+model Prediction {
+  id                    String     @id @default(cuid())
+  
+  // Match Details
+  homeTeam              String
+  awayTeam              String
+  league                String
+  country               String
+  matchDate             DateTime
+  matchTime             String
+  
+  // Prediction Details
+  type                  PredictionType
+  prediction            String     // e.g., "Over 2.5", "Home Win", "1-1"
+  odds                  Float
+  confidence            Int        // 1-100
+  status                PredictionStatus @default(PENDING)
+  result                PredictionResult? @default(PENDING)
+  
+  // Category
+  category              String     // Football, Basketball, etc.
+  subcategory           String?    // Premier League, NBA, etc.
+  
+  // Analysis
+  analysis              String     @db.Text
+  tips                  String?    @db.Text
+  
+  // Level
+  level                 PredictionLevel
+  isScheduled           Boolean    @default(false)
+  publishedAt           DateTime?
+  scheduledAt           DateTime?
+  
+  // Admin
+  createdBy             String
+  publishedBy           String?
+  archivedAt            DateTime?
+  
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  // Relationships
+  savedBy               SavedPrediction[]
+  results               PredictionResultHistory[]
+  
+  @@index([matchDate])
+  @@index([status])
+  @@index([category])
+  @@index([level])
 }
 
-model payment {
-  id           String       @id @default(cuid())
-  userId       String
-  predictionId String
-  amount       Int
-  currency     String       @default("NGN")
-  reference    String       @unique(map: "Payment_reference_key")
-  paystackRef  String?
-  status       String       @default("pending")
-  metadata     String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  user         user         @relation(fields: [userId], references: [id], map: "Payment_userId_fkey")
-  prediction   prediction   @relation(fields: [predictionId], references: [id], map: "Payment_predictionId_fkey")
-
-  @@index([userId], map: "Payment_userId_fkey")
-  @@index([predictionId], map: "Payment_predictionId_fkey")
+enum PredictionType {
+  CORRECT_SCORE
+  OVER_UNDER
+  BTTS
+  DRAW_NO_BET
+  ACCUMULATOR
+  HT_FT
+  BANKER
+  DOUBLE_CHANCE
+  HOME_WIN
+  AWAY_WIN
+  DRAW
+  ASIAN_HANDICAP
+  BOTH_TO_SCORE
 }
 
-model subscription {
-  id                 String    @id @default(cuid())
-  userId             String    @unique(map: "Subscription_userId_key")
-  plan               String    @default("free")
-  paystackCode       String?
-  status             String    @default("active")
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  user               user      @relation(fields: [userId], references: [id], map: "Subscription_userId_fkey")
-
-  @@index([userId], map: "Subscription_userId_fkey")
+enum PredictionLevel {
+  FREE
+  PREMIUM
+  VIP
+  ELITE
 }
 
-model seodata {
-  id          String   @id @default(cuid())
-  page        String   @unique(map: "SEOData_page_key")
-  title       String
-  description String
-  keywords    String?
-  ogImage     String?
-  canonical   String?
-  schema      String?
-  updatedAt   DateTime @updatedAt
+enum PredictionStatus {
+  PENDING
+  PUBLISHED
+  ARCHIVED
+  DELETED
 }
 
-model team {
-  id                           String   @id @default(cuid())
-  name                         String
-  slug                         String   @unique(map: "Team_slug_key")
-  shortName                    String
-  logo                         String?
-  country                      String?
-  stadium                      String?
-  foundedYear                  Int?
-  leagueId                     String
-  createdAt                    DateTime @default(now())
-  updatedAt                    DateTime @updatedAt
-  match_match_awayTeamIdToteam match[]  @relation("match_awayTeamIdToteam")
-  match_match_homeTeamIdToteam match[]  @relation("match_homeTeamIdToteam")
-  fixture_awayTeamIdToteam     fixture[] @relation("fixture_awayTeamIdToteam")
-  fixture_homeTeamIdToteam     fixture[] @relation("fixture_homeTeamIdToteam")
-  league                       league   @relation(fields: [leagueId], references: [id], map: "Team_leagueId_fkey")
-  standing                     standing[]
-  topscorer                    topscorer[]
-
-  @@index([leagueId], map: "Team_leagueId_fkey")
+enum PredictionResult {
+  PENDING
+  WON
+  LOST
+  VOIDED
+  POSTPONED
 }
 
-model user {
-  id                 String          @id @default(cuid())
-  name               String?
-  email              String          @unique(map: "User_email_key")
-  password           String
-  role               String          @default("user") // user | editor | moderator | admin | superadmin
-  avatar             String?
-  emailVerified      Boolean         @default(false)
-  favorites          String?
-  stripeCustomerId   String?
-  paystackCustomerId String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  payment            payment[]
-  subscription       subscription?
-  notification       notification[]
-  auditlog           auditlog[]
-  fixture            fixture[]
+model SavedPrediction {
+  id                    String     @id @default(cuid())
+  userId                String
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  predictionId          String
+  prediction            Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  
+  savedAt               DateTime   @default(now())
+  
+  @@unique([userId, predictionId])
+  @@index([userId])
+  @@index([predictionId])
 }
 
-model notification {
-  id        String   @id @default(cuid())
-  userId    String
-  type      String
-  title     String
-  message   String
-  read      Boolean  @default(false)
-  data      String?
-  createdAt DateTime @default(now())
-  user      user     @relation(fields: [userId], references: [id], map: "Notification_userId_fkey")
-
-  @@index([userId], map: "Notification_userId_fkey")
+model PredictionResultHistory {
+  id                    String     @id @default(cuid())
+  predictionId          String
+  prediction            Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  
+  result                PredictionResult
+  resultDate            DateTime
+  notes                 String?
+  actualScore           String?
+  
+  verifiedBy            String?
+  verifiedAt            DateTime?
+  
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  @@index([predictionId])
+  @@index([result])
 }
 
-model auditlog {
-  id        String   @id @default(cuid())
-  userId    String
-  action    String
-  entity    String
-  entityId  String
-  oldData   String?
-  newData   String?
-  ip        String?
-  createdAt DateTime @default(now())
-  user      user     @relation(fields: [userId], references: [id], map: "AuditLog_userId_fkey")
-
-  @@index([userId], map: "AuditLog_userId_fkey")
-  @@index([entity, entityId], map: "AuditLog_entity_entityId_idx")
+model Payment {
+  id                    String     @id @default(cuid())
+  userId                String
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Payment Details
+  amount                Float
+  currency              String     @default("USD")
+  status                PaymentStatus @default(PENDING)
+  type                  String     // subscription, tip, etc.
+  
+  // Provider
+  provider              PaymentProvider // stripe, paystack, flutterwave
+  transactionId         String     @unique
+  
+  // Stripe
+  stripePaymentIntentId String?
+  
+  // Paystack
+  paystackRef           String?
+  paystackAuthCode      String?
+  
+  // Flutterwave
+  flutterwaveRef        String?
+  
+  description           String?
+  metadata              Json?
+  
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([provider])
 }
 
-model fixture {
-  id             String   @id @default(cuid())
-  externalId     String
-  leagueId       String
-  homeTeamId     String
-  awayTeamId     String
-  date           DateTime
-  status         String   @default("scheduled")
-  venue          String?
-  referee        String?
-  round          String?
-  season         String?
-  homeScore      Int?
-  awayScore      Int?
-  homeHalfScore  Int?
-  awayHalfScore  Int?
-  odds           String?
-  syncedByUserId String?
-  lastSyncedAt   DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  league         league   @relation(fields: [leagueId], references: [id], map: "Fixture_leagueId_fkey")
-  homeTeam       team     @relation("fixture_homeTeamIdToteam", fields: [homeTeamId], references: [id], map: "Fixture_homeTeamId_fkey")
-  awayTeam       team     @relation("fixture_awayTeamIdToteam", fields: [awayTeamId], references: [id], map: "Fixture_awayTeamId_fkey")
-  syncedBy       user?    @relation(fields: [syncedByUserId], references: [id], map: "Fixture_syncedByUserId_fkey")
-
-  @@index([externalId], map: "Fixture_externalId_key")
-  @@index([leagueId], map: "Fixture_leagueId_fkey")
-  @@index([homeTeamId], map: "Fixture_homeTeamId_fkey")
-  @@index([awayTeamId], map: "Fixture_awayTeamId_fkey")
-  @@index([syncedByUserId], map: "Fixture_syncedByUserId_fkey")
-  @@index([date], map: "Fixture_date_idx")
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
 }
 
-model livescore {
-  id          String   @id @default(cuid())
-  matchId     String   @unique(map: "LiveScore_matchId_key")
-  minute      Int?
-  status      String   @default("not_started")
-  homeScore   Int?
-  awayScore   Int?
-  events      String?
-  stats       String?
-  lastUpdated DateTime @default(now())
-  match       match    @relation(fields: [matchId], references: [id], map: "LiveScore_matchId_fkey")
+enum PaymentProvider {
+  STRIPE
+  PAYSTACK
+  FLUTTERWAVE
+  WALLET
 }
 
-model topscorer {
-  id         String   @id @default(cuid())
-  leagueId   String
-  teamId     String
-  playerName String
-  goals      Int      @default(0)
-  assists    Int      @default(0)
-  season     String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  league     league   @relation(fields: [leagueId], references: [id], map: "TopScorer_leagueId_fkey")
-  team       team     @relation(fields: [teamId], references: [id], map: "TopScorer_teamId_fkey")
-
-  @@index([leagueId], map: "TopScorer_leagueId_fkey")
-  @@index([teamId], map: "TopScorer_teamId_fkey")
+model Blog {
+  id                    String     @id @default(cuid())
+  title                 String
+  slug                  String     @unique
+  excerpt               String?
+  content               String     @db.Text
+  coverImage            String?
+  
+  category              String
+  tags                  String[]
+  
+  author                String
+  status                String     @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  
+  viewCount             Int        @default(0)
+  publishedAt           DateTime?
+  
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  @@index([slug])
+  @@index([status])
+  @@index([publishedAt])
 }
 
-model standing {
-  id            String   @id @default(cuid())
-  leagueId      String
-  teamId        String
-  position      Int
-  played        Int      @default(0)
-  won           Int      @default(0)
-  drawn         Int      @default(0)
-  lost          Int      @default(0)
-  goalsFor      Int      @default(0)
-  goalsAgainst  Int      @default(0)
-  goalDifference Int     @default(0)
-  points        Int      @default(0)
-  form          String?
-  season        String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  league        league   @relation(fields: [leagueId], references: [id], map: "Standing_leagueId_fkey")
-  team          team     @relation(fields: [teamId], references: [id], map: "Standing_teamId_fkey")
-
-  @@index([leagueId], map: "Standing_leagueId_fkey")
-  @@index([teamId], map: "Standing_teamId_fkey")
-  @@index([leagueId, season, position], map: "Standing_leagueId_season_position_idx")
+model Notification {
+  id                    String     @id @default(cuid())
+  userId                String
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type                  String     // prediction, payment, system
+  title                 String
+  message               String     @db.Text
+  
+  read                  Boolean    @default(false)
+  readAt                DateTime?
+  
+  link                  String?
+  metadata              Json?
+  
+  createdAt             DateTime   @default(now())
+  
+  @@index([userId])
+  @@index([read])
 }
 
-model scheduledpublish {
-  id         String   @id @default(cuid())
-  entityType String
-  entityId   String
-  publishAt  DateTime
-  status     String   @default("pending")
-  createdAt  DateTime @default(now())
+model Referral {
+  id                    String     @id @default(cuid())
+  referrerId            String
+  referrer              User       @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  
+  referredUserId        String     @unique
+  referred              User       @relation("referred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  
+  bonusAmount           Float
+  bonusClaimed          Boolean    @default(false)
+  claimedAt             DateTime?
+  
+  createdAt             DateTime   @default(now())
+  
+  @@index([referrerId])
+  @@index([referredUserId])
+}
 
-  @@index([entityType, entityId], map: "ScheduledPublish_entityType_entityId_idx")
-  @@index([publishAt, status], map: "ScheduledPublish_publishAt_status_idx")
+model Advertisement {
+  id                    String     @id @default(cuid())
+  title                 String
+  description           String?
+  imageUrl              String
+  redirectUrl           String
+  
+  placement             AdPlacement
+  isActive              Boolean    @default(true)
+  
+  startDate             DateTime
+  endDate               DateTime?
+  
+  impressions           Int        @default(0)
+  clicks                Int        @default(0)
+  
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  @@index([isActive])
+  @@index([placement])
+}
+
+enum AdPlacement {
+  HEADER
+  SIDEBAR
+  FOOTER
+  POPUP
+  BANNER
+}
+
+model ActivityLog {
+  id                    String     @id @default(cuid())
+  userId                String
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  action                String
+  description           String?
+  ipAddress             String?
+  userAgent             String?
+  
+  createdAt             DateTime   @default(now())
+  
+  @@index([userId])
+  @@index([action])
+}
+
+model Setting {
+  id                    String     @id @default(cuid())
+  key                   String     @unique
+  value                 String     @db.Text
+  description           String?
+  
+  updatedAt             DateTime   @updatedAt
+}
+
+model Testimonial {
+  id                    String     @id @default(cuid())
+  name                  String
+  email                 String
+  avatar                String?
+  text                  String     @db.Text
+  
+  isApproved            Boolean    @default(false)
+  rating                Int        // 1-5
+  
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  @@index([isApproved])
+}
+
+model FAQ {
+  id                    String     @id @default(cuid())
+  question              String
+  answer                String     @db.Text
+  category              String
+  
+  isActive              Boolean    @default(true)
+  sortOrder             Int        @default(0)
+  
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  @@index([category])
+  @@index([isActive])
 }
