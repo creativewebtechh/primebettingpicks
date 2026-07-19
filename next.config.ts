@@ -4,9 +4,6 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
   reactStrictMode: true,
-  turbopack: {
-    root: process.cwd(),
-  },
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
