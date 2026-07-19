@@ -12,61 +12,59 @@ datasource db {
 }
 
 model User {
-  id                    String     @id @default(cuid())
-  email                 String     @unique
-  username              String     @unique
-  password              String?
-  firstName             String?
-  lastName              String?
-  avatar                String?
-  phoneNumber           String?
-  verified              Boolean    @default(false)
-  verificationToken     String?
-  verificationExpires   DateTime?
-  twoFactorEnabled      Boolean    @default(false)
-  twoFactorSecret       String?
-  
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  username            String    @unique
+  password            String?
+  firstName           String?
+  lastName            String?
+  avatar              String?
+  phoneNumber         String?
+  verified            Boolean   @default(false)
+  verificationToken   String?
+  verificationExpires DateTime?
+  twoFactorEnabled    Boolean   @default(false)
+  twoFactorSecret     String?
+
   // Auth
-  role                  UserRole   @default(USER)
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  lastLoginAt           DateTime?
-  
+  role        UserRole  @default(USER)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
   // Account Status
-  status                AccountStatus @default(ACTIVE)
-  suspendedAt           DateTime?
-  suspendedReason       String?
-  
+  status          AccountStatus @default(ACTIVE)
+  suspendedAt     DateTime?
+  suspendedReason String?
+
   // Subscription
-  subscriptionId        String?
-  subscription          Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscription          Subscription?
   subscriptionStartDate DateTime?
   subscriptionEndDate   DateTime?
   subscriptionStatus    SubscriptionStatus @default(INACTIVE)
-  
+
   // Relationships
-  predictions           SavedPrediction[]
-  payments              Payment[]
-  notifications         Notification[]
-  referrals             Referral[]         @relation("referrer")
-  referredBy            Referral?          @relation("referred", fields: [id], references: [referredUserId])
-  activityLog           ActivityLog[]
-  
+  predictions   SavedPrediction[]
+  payments      Payment[]
+  notifications Notification[]
+  referrals     Referral[]        @relation("referrer")
+  referredBy    Referral?         @relation("referred")
+  activityLog   ActivityLog[]
+
   @@index([email])
-  @@index([subscriptionId])
 }
 
 model Admin {
-  id                    String     @id @default(cuid())
-  email                 String     @unique
-  password              String
-  firstName             String
-  lastName              String
-  role                  AdminRole  @default(MODERATOR)
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  lastLoginAt           DateTime?
-  
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
+  firstName   String
+  lastName    String
+  role        AdminRole @default(MODERATOR)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
   @@index([email])
 }
 
@@ -99,99 +97,99 @@ enum SubscriptionStatus {
 }
 
 model SubscriptionPlan {
-  id                    String     @id @default(cuid())
-  name                  String     @unique
-  description           String?
-  price                 Float
-  currency              String     @default("USD")
-  billingCycle          String     @default("monthly") // monthly, yearly
-  features              String[]
-  predictionLimit       Int        @default(0) // 0 = unlimited
-  premiumAccess         Boolean    @default(false)
-  vipAccess             Boolean    @default(false)
-  correctScoreAccess    Boolean    @default(false)
-  telegramAccess        Boolean    @default(false)
-  earlyReleaseAccess    Boolean    @default(false)
-  dedicatedSupport      Boolean    @default(false)
-  
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  
-  subscriptions         Subscription[]
-  
+  id                 String  @id @default(cuid())
+  name               String  @unique
+  description        String?
+  price              Float
+  currency           String  @default("USD")
+  billingCycle       String  @default("monthly") // monthly, yearly
+  features           Json
+  predictionLimit    Int     @default(0) // 0 = unlimited
+  premiumAccess      Boolean @default(false)
+  vipAccess          Boolean @default(false)
+  correctScoreAccess Boolean @default(false)
+  telegramAccess     Boolean @default(false)
+  earlyReleaseAccess Boolean @default(false)
+  dedicatedSupport   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions Subscription[]
+
   @@index([name])
 }
 
 model Subscription {
-  id                    String     @id @default(cuid())
-  userId                String     @unique
-  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  planId                String
-  plan                  SubscriptionPlan @relation(fields: [planId], references: [id])
-  
-  status                SubscriptionStatus @default(ACTIVE)
-  startDate             DateTime   @default(now())
-  endDate               DateTime
-  renewalDate           DateTime?
-  autoRenew             Boolean    @default(true)
-  
-  stripeSubscriptionId  String?
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  status      SubscriptionStatus @default(ACTIVE)
+  startDate   DateTime           @default(now())
+  endDate     DateTime
+  renewalDate DateTime?
+  autoRenew   Boolean            @default(true)
+
+  stripeSubscriptionId   String?
   paystackSubscriptionId String?
-  flutterwaveSubId      String?
-  
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  
+  flutterwaveSubId       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([planId])
 }
 
 model Prediction {
-  id                    String     @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Match Details
-  homeTeam              String
-  awayTeam              String
-  league                String
-  country               String
-  matchDate             DateTime
-  matchTime             String
-  
+  homeTeam  String
+  awayTeam  String
+  league    String
+  country   String
+  matchDate DateTime
+  matchTime String
+
   // Prediction Details
-  type                  PredictionType
-  prediction            String     // e.g., "Over 2.5", "Home Win", "1-1"
-  odds                  Float
-  confidence            Int        // 1-100
-  status                PredictionStatus @default(PENDING)
-  result                PredictionResult? @default(PENDING)
-  
+  type       PredictionType
+  prediction String // e.g., "Over 2.5", "Home Win", "1-1"
+  odds       Float
+  confidence Int // 1-100
+  status     PredictionStatus  @default(PENDING)
+  result     PredictionResult? @default(PENDING)
+
   // Category
-  category              String     // Football, Basketball, etc.
-  subcategory           String?    // Premier League, NBA, etc.
-  
+  category    String // Football, Basketball, etc.
+  subcategory String? // Premier League, NBA, etc.
+
   // Analysis
-  analysis              String     @db.Text
-  tips                  String?    @db.Text
-  
+  analysis String  @db.Text
+  tips     String? @db.Text
+
   // Level
-  level                 PredictionLevel
-  isScheduled           Boolean    @default(false)
-  publishedAt           DateTime?
-  scheduledAt           DateTime?
-  
+  level       PredictionLevel
+  isScheduled Boolean         @default(false)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+
   // Admin
-  createdBy             String
-  publishedBy           String?
-  archivedAt            DateTime?
-  
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  
+  createdBy   String
+  publishedBy String?
+  archivedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relationships
-  savedBy               SavedPrediction[]
-  results               PredictionResultHistory[]
-  
+  savedBy SavedPrediction[]
+  results PredictionResultHistory[]
+
   @@index([matchDate])
   @@index([status])
   @@index([category])
@@ -237,71 +235,71 @@ enum PredictionResult {
 }
 
 model SavedPrediction {
-  id                    String     @id @default(cuid())
-  userId                String
-  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  predictionId          String
-  prediction            Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
-  
-  savedAt               DateTime   @default(now())
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  predictionId String
+  prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+
+  savedAt DateTime @default(now())
+
   @@unique([userId, predictionId])
   @@index([userId])
   @@index([predictionId])
 }
 
 model PredictionResultHistory {
-  id                    String     @id @default(cuid())
-  predictionId          String
-  prediction            Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
-  
-  result                PredictionResult
-  resultDate            DateTime
-  notes                 String?
-  actualScore           String?
-  
-  verifiedBy            String?
-  verifiedAt            DateTime?
-  
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  
+  id           String     @id @default(cuid())
+  predictionId String
+  prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+
+  result      PredictionResult
+  resultDate  DateTime
+  notes       String?
+  actualScore String?
+
+  verifiedBy String?
+  verifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([predictionId])
   @@index([result])
 }
 
 model Payment {
-  id                    String     @id @default(cuid())
-  userId                String
-  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Payment Details
-  amount                Float
-  currency              String     @default("USD")
-  status                PaymentStatus @default(PENDING)
-  type                  String     // subscription, tip, etc.
-  
+  amount   Float
+  currency String        @default("USD")
+  status   PaymentStatus @default(PENDING)
+  type     String // subscription, tip, etc.
+
   // Provider
-  provider              PaymentProvider // stripe, paystack, flutterwave
-  transactionId         String     @unique
-  
+  provider      PaymentProvider // stripe, paystack, flutterwave
+  transactionId String          @unique
+
   // Stripe
   stripePaymentIntentId String?
-  
+
   // Paystack
-  paystackRef           String?
-  paystackAuthCode      String?
-  
+  paystackRef      String?
+  paystackAuthCode String?
+
   // Flutterwave
-  flutterwaveRef        String?
-  
-  description           String?
-  metadata              Json?
-  
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  
+  flutterwaveRef String?
+
+  description String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([status])
   @@index([provider])
@@ -323,88 +321,88 @@ enum PaymentProvider {
 }
 
 model Blog {
-  id                    String     @id @default(cuid())
-  title                 String
-  slug                  String     @unique
-  excerpt               String?
-  content               String     @db.Text
-  coverImage            String?
-  
-  category              String
-  tags                  String[]
-  
-  author                String
-  status                String     @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
-  
-  viewCount             Int        @default(0)
-  publishedAt           DateTime?
-  
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  
+  id         String  @id @default(cuid())
+  title      String
+  slug       String  @unique
+  excerpt    String?
+  content    String  @db.Text
+  coverImage String?
+
+  category String
+  tags     Json
+
+  author String
+  status String @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+
+  viewCount   Int       @default(0)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([slug])
   @@index([status])
   @@index([publishedAt])
 }
 
 model Notification {
-  id                    String     @id @default(cuid())
-  userId                String
-  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  type                  String     // prediction, payment, system
-  title                 String
-  message               String     @db.Text
-  
-  read                  Boolean    @default(false)
-  readAt                DateTime?
-  
-  link                  String?
-  metadata              Json?
-  
-  createdAt             DateTime   @default(now())
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    String // prediction, payment, system
+  title   String
+  message String @db.Text
+
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  link     String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([read])
 }
 
 model Referral {
-  id                    String     @id @default(cuid())
-  referrerId            String
-  referrer              User       @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  
-  referredUserId        String     @unique
-  referred              User       @relation("referred", fields: [referredUserId], references: [id], onDelete: Cascade)
-  
-  bonusAmount           Float
-  bonusClaimed          Boolean    @default(false)
-  claimedAt             DateTime?
-  
-  createdAt             DateTime   @default(now())
-  
+  id         String @id @default(cuid())
+  referrerId String
+  referrer   User   @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+
+  referredUserId String @unique
+  referred       User   @relation("referred", fields: [referredUserId], references: [id], onDelete: Cascade)
+
+  bonusAmount  Float
+  bonusClaimed Boolean   @default(false)
+  claimedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
   @@index([referrerId])
   @@index([referredUserId])
 }
 
 model Advertisement {
-  id                    String     @id @default(cuid())
-  title                 String
-  description           String?
-  imageUrl              String
-  redirectUrl           String
-  
-  placement             AdPlacement
-  isActive              Boolean    @default(true)
-  
-  startDate             DateTime
-  endDate               DateTime?
-  
-  impressions           Int        @default(0)
-  clicks                Int        @default(0)
-  
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String
+  redirectUrl String
+
+  placement AdPlacement
+  isActive  Boolean     @default(true)
+
+  startDate DateTime
+  endDate   DateTime?
+
+  impressions Int @default(0)
+  clicks      Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([isActive])
   @@index([placement])
 }
@@ -418,58 +416,58 @@ enum AdPlacement {
 }
 
 model ActivityLog {
-  id                    String     @id @default(cuid())
-  userId                String
-  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  action                String
-  description           String?
-  ipAddress             String?
-  userAgent             String?
-  
-  createdAt             DateTime   @default(now())
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  action      String
+  description String?
+  ipAddress   String?
+  userAgent   String?
+
+  createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([action])
 }
 
 model Setting {
-  id                    String     @id @default(cuid())
-  key                   String     @unique
-  value                 String     @db.Text
-  description           String?
-  
-  updatedAt             DateTime   @updatedAt
+  id          String  @id @default(cuid())
+  key         String  @unique
+  value       String  @db.Text
+  description String?
+
+  updatedAt DateTime @updatedAt
 }
 
 model Testimonial {
-  id                    String     @id @default(cuid())
-  name                  String
-  email                 String
-  avatar                String?
-  text                  String     @db.Text
-  
-  isApproved            Boolean    @default(false)
-  rating                Int        // 1-5
-  
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  
+  id     String  @id @default(cuid())
+  name   String
+  email  String
+  avatar String?
+  text   String  @db.Text
+
+  isApproved Boolean @default(false)
+  rating     Int // 1-5
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([isApproved])
 }
 
 model FAQ {
-  id                    String     @id @default(cuid())
-  question              String
-  answer                String     @db.Text
-  category              String
-  
-  isActive              Boolean    @default(true)
-  sortOrder             Int        @default(0)
-  
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  
+  id       String @id @default(cuid())
+  question String
+  answer   String @db.Text
+  category String
+
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([category])
   @@index([isActive])
 }
